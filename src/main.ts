@@ -181,7 +181,7 @@ function readConfig(): GameConfig {
     height: custom ? +$<HTMLInputElement>("#height").value : p.height,
     family: custom ? $<HTMLSelectElement>("#family").value : p.family,
     mode,
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     seed: seedInput
       ? Number(seedInput)
       : crypto.getRandomValues(new Uint32Array(1))[0],

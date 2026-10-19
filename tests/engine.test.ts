@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   CATALOGS,
   fittingPieceIds,
+  pieceDrawWeights,
   fallSpeed,
   Engine,
   PRESETS,
@@ -35,6 +36,55 @@ const config: GameConfig = {
 function single(e: Engine, x = 0, y = 0, z = 0) {
   e.state.active = { id: 0, cells: [[0, 0, 0]], position: [x, y, z] };
 }
+describe("inverse-square distribution", () => {
+  const setup: GameConfig = {
+    ...config,
+    family: "blocks",
+    distribution: "inverse-square",
+  };
+  it("weights every fitting piece exactly by inverse squared occupied volume", () => {
+    for (const family of ["blocks", "blocks-corner"] as const) {
+      const weights = pieceDrawWeights({ ...setup, family });
+      for (const { id, weight } of weights)
+        expect(weight).toBe(1 / CATALOGS[family][id].length ** 2);
+      expect(weights[0].weight / weights[3].weight).toBe(16);
+    }
+    expect(
+      pieceDrawWeights({ ...setup, width: 3, depth: 3 }).map((p) => p.id),
+    ).not.toContain(5);
+  });
+  it("draws independently with seeded inverse-square frequencies", () => {
+    const counts = Array(9).fill(0);
+    const e = new Engine({ ...setup, mode: "practice", gravity: false });
+    for (let i = 0; i < 30000; i++) {
+      counts[e.state.active.id]++;
+      e.state.board.fill(0);
+      e.command({ type: "hardDrop" });
+    }
+    const weights = pieceDrawWeights(setup);
+    const total = weights.reduce((n, p) => n + p.weight, 0);
+    for (const { id, weight } of weights) {
+      const expected = (30000 * weight) / total;
+      expect(Math.abs(counts[id] - expected)).toBeLessThan(
+        6 * Math.sqrt(expected),
+      );
+    }
+  });
+  it("preserves saves, undo and replay and separates legacy records", () => {
+    const e = new Engine({ ...setup, mode: "practice", gravity: false });
+    const before = e.snapshot();
+    e.command({ type: "hardDrop" });
+    expect(e.undo()).toBe(true);
+    expect(e.state).toEqual(before.state);
+    e.command({ type: "hardDrop" });
+    e.step();
+    expect(Engine.restore(e.snapshot()).state).toEqual(e.state);
+    expect(playReplay(e.replay())).toEqual(e.state);
+    expect(rulesId(setup)).not.toBe(
+      rulesId({ ...setup, distribution: "size-weighted" }),
+    );
+  });
+});
 describe("size-weighted distribution", () => {
   const weighted: GameConfig = {
     ...config,
@@ -64,7 +114,9 @@ describe("size-weighted distribution", () => {
       .sort((a, b) => a.volume - b.volume);
     for (let i = 1; i < order.length; i++)
       expect(order[i].count).toBeLessThan(order[i - 1].count);
-    expect(PRESETS.every((p) => p.distribution === "size-weighted")).toBe(true);
+    expect(PRESETS.every((p) => p.distribution === "inverse-square")).toBe(
+      true,
+    );
   });
   it("keeps the same weights for fitting pieces and for optional small corners", () => {
     const narrow = inventory(new Engine({ ...weighted, width: 3, depth: 3 }));

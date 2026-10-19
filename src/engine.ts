@@ -16,7 +16,7 @@ export interface GameConfig {
   startLevel: number;
   previews: number;
   hold: boolean;
-  distribution?: "size-weighted";
+  distribution?: "size-weighted" | "inverse-square";
 }
 export interface Piece {
   id: number;
@@ -71,7 +71,7 @@ export const PRESETS = [
     depth: 4,
     height: 12,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "Find your footing",
     tag: "LEARN",
   },
@@ -81,7 +81,7 @@ export const PRESETS = [
     depth: 5,
     height: 16,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "The original challenge",
     tag: "CLASSIC",
   },
@@ -91,7 +91,7 @@ export const PRESETS = [
     depth: 3,
     height: 20,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "Every cell counts",
     tag: "PRECISE",
   },
@@ -101,7 +101,7 @@ export const PRESETS = [
     depth: 8,
     height: 10,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "Room to think bigger",
     tag: "EXPLORE",
   },
@@ -111,7 +111,7 @@ export const PRESETS = [
     depth: 8,
     height: 14,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "A different perspective",
     tag: "UNUSUAL",
   },
@@ -121,7 +121,7 @@ export const PRESETS = [
     depth: 5,
     height: 24,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     note: "Play the long game",
     tag: "ENDURE",
   },
@@ -293,7 +293,7 @@ export function validateConfig(value: unknown): GameConfig {
     c.previews < 0 ||
     c.previews > 3 ||
     (c.distribution !== undefined &&
-      (c.distribution !== "size-weighted" ||
+      (!["size-weighted", "inverse-square"].includes(c.distribution) ||
         !["blocks", "blocks-corner"].includes(c.family))) ||
     typeof c.hold !== "boolean" ||
     typeof c.gravity !== "boolean"
@@ -404,7 +404,25 @@ function bagContents(config: GameConfig): number[] {
     ).fill(id),
   );
 }
+export function pieceDrawWeights(
+  config: GameConfig,
+): { id: number; weight: number }[] {
+  return fittingPieceIds(config).map((id) => ({
+    id,
+    weight: 1 / CATALOGS[config.family][id].length ** 2,
+  }));
+}
 function next(s: GameState): number {
+  if (s.config.distribution === "inverse-square") {
+    const weights = pieceDrawWeights(s.config);
+    let draw =
+      rng(s) * weights.reduce((total, piece) => total + piece.weight, 0);
+    for (const piece of weights) {
+      draw -= piece.weight;
+      if (draw < 0) return piece.id;
+    }
+    return weights[weights.length - 1].id;
+  }
   if (!s.bag.length) {
     s.bag = bagContents(s.config);
     for (let i = s.bag.length - 1; i > 0; i--) {
@@ -475,7 +493,7 @@ export function newState(config: GameConfig): GameState {
   return s;
 }
 export function rulesId(c: GameConfig): string {
-  return `v${RULES_VERSION}:${c.mode}:${c.width}x${c.depth}x${c.height}:${c.family}:L${c.startLevel}:g${+c.gravity}:p${c.previews}:h${+c.hold}${c.distribution ? ":size-weighted-v1" : ""}`;
+  return `v${RULES_VERSION}:${c.mode}:${c.width}x${c.depth}x${c.height}:${c.family}:L${c.startLevel}:g${+c.gravity}:p${c.previews}:h${+c.hold}${c.distribution === "inverse-square" ? ":inverse-square-v1" : c.distribution ? ":size-weighted-v1" : ""}`;
 }
 export function checksum(s: GameState): string {
   let h = 2166136261;

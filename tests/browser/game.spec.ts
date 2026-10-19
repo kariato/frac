@@ -213,7 +213,7 @@ test("large solid previews fit their frames and new runs show doubled speed", as
     depth: 5,
     height: 16,
     family: "blocks",
-    distribution: "size-weighted",
+    distribution: "inverse-square",
     mode: "practice",
     seed: 0,
     gravity: false,
