@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   CATALOGS,
+  fittingPieceIds,
+  fallSpeed,
   Engine,
   PRESETS,
   checksum,
@@ -34,14 +36,78 @@ function single(e: Engine, x = 0, y = 0, z = 0) {
   e.state.active = { id: 0, cells: [[0, 0, 0]], position: [x, y, z] };
 }
 describe("piece catalogs and transforms", () => {
-  it("defaults every well to only single cubes and short straight bars", () => {
+  it("contains the requested squares, cubes and cuboid without compound shapes", () => {
+    expect(CATALOGS.blocks.map((cells) => cells.length)).toEqual([
+      1, 2, 3, 4, 9, 16, 8, 27, 12,
+    ]);
+    const dimensions = CATALOGS.blocks.map((cells) =>
+      [0, 1, 2].map((a) => Math.max(...cells.map((c) => c[a])) + 1),
+    );
+    expect(dimensions.slice(3)).toEqual([
+      [2, 1, 2],
+      [3, 1, 3],
+      [4, 1, 4],
+      [2, 2, 2],
+      [3, 3, 3],
+      [2, 2, 3],
+    ]);
+    for (let i = 0; i < CATALOGS.blocks.length; i++)
+      expect(CATALOGS.blocks[i].length).toBe(
+        dimensions[i].reduce((a, b) => a * b, 1),
+      );
+  });
+  it("omits the 4x4 square in a 3x3 shaft but allows it vertically in a corridor", () => {
+    expect(
+      fittingPieceIds({ ...config, family: "blocks", width: 3, depth: 3 }),
+    ).toEqual([0, 1, 2, 3, 4, 6, 7, 8]);
+    expect(
+      fittingPieceIds({ ...config, family: "blocks", width: 3, depth: 8 }),
+    ).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    const e = new Engine({ ...config, family: "blocks", width: 3, depth: 3 });
+    for (let i = 0; i < 40; i++) {
+      expect(e.state.active.id).not.toBe(5);
+      expect(e.state.queue).not.toContain(5);
+      e.state.board.fill(0);
+      e.command({ type: "hardDrop" });
+    }
+  });
+  it("round-trips large pieces through rotation, saves, replay, and filtered bags", () => {
+    const e = new Engine({
+      ...config,
+      family: "blocks",
+      mode: "practice",
+      gravity: false,
+    });
+    const firstBag = [e.state.active.id];
+    for (let i = 0; i < 8; i++) {
+      e.state.board.fill(0);
+      e.command({ type: "hardDrop" });
+      firstBag.push(e.state.active.id);
+    }
+    expect(new Set(firstBag).size).toBe(9);
+    const restored = Engine.restore(e.snapshot());
+    expect(restored.state).toEqual(e.state);
+    for (const cells of CATALOGS.blocks)
+      for (const axis of ["x", "y", "z"] as Axis[]) {
+        let result = cells;
+        for (let i = 0; i < 4; i++) result = rotateCells(result, axis, 1);
+        expect(result).toEqual(cells);
+      }
+    const replay = new Engine({ ...config, family: "blocks" });
+    for (let i = 0; i < 240; i++) {
+      if (i % 80 === 0) replay.command({ type: "hardDrop" });
+      replay.step();
+    }
+    expect(playReplay(replay.replay())).toEqual(replay.state);
+  });
+  it("keeps legacy straight pieces and defaults every well to geometric blocks", () => {
     expect(CATALOGS.simple.map((cells) => cells.length)).toEqual([1, 2, 3]);
     for (const cells of CATALOGS.simple) {
       expect(cells.every(([x, y, z], i) => x === i && y === 0 && z === 0)).toBe(
         true,
       );
     }
-    expect(PRESETS.every((preset) => preset.family === "simple")).toBe(true);
+    expect(PRESETS.every((preset) => preset.family === "blocks")).toBe(true);
   });
   it("deals the complete simple catalog once per bag and restores simple saves", () => {
     const e = new Engine({ ...config, family: "simple" });
@@ -233,7 +299,42 @@ describe("clearing, score, and top-out", () => {
     expect(checksum(e.state)).toBe(c);
   });
 });
+it("rejects saved queues containing a block that cannot fit the well", () => {
+  const e = new Engine({ ...config, family: "blocks", width: 3, depth: 3 });
+  const data = e.snapshot();
+  data.state.queue[0] = 5;
+  expect(() => Engine.restore(data)).toThrow("Invalid piece queue");
+});
 describe("timing and hold", () => {
+  it("doubles normal gravity at every level without accelerating the game clock", () => {
+    for (const level of [1, 2, 20]) {
+      const e = new Engine({ ...config, family: "blocks", startLevel: level });
+      const interval = Math.max(6, Math.round(60 * Math.pow(0.85, level - 1)));
+      const y = e.state.active.position[1];
+      for (let i = 0; i < interval; i++) e.step();
+      expect(e.state.active.position[1]).toBe(y - 2);
+      expect(e.state.tick).toBe(interval);
+    }
+    expect(fallSpeed(config)).toBe(1);
+  });
+  it("doubles soft drop without carrying a gravity backlog or changing lock delay", () => {
+    const e = new Engine({ ...config, family: "blocks" });
+    for (let i = 0; i < 14; i++) e.step();
+    const y = e.state.active.position[1];
+    e.command({ type: "softDrop", active: true });
+    e.step();
+    expect(e.state.active.position[1]).toBe(y);
+    e.step();
+    e.step();
+    expect(e.state.active.position[1]).toBe(y - 2);
+    expect(e.state.score).toBe(2);
+    e.command({ type: "softDrop", active: false });
+    single(e);
+    for (let i = 0; i < 29; i++) e.step();
+    expect(e.state.placements).toBe(0);
+    e.step();
+    expect(e.state.placements).toBe(1);
+  });
   it("uses fixed tick gravity", () => {
     const e = new Engine(config);
     const y = e.state.active.position[1];

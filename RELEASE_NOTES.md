@@ -2,7 +2,8 @@
 
 A spatial falling-block puzzle inspired by Frac (1990), built for keyboard and touch.
 
-- Simple default pieces: single cubes and short two/three-cube straight bars. The earlier complex tetracubes are no longer used for new games.
+- Geometric blocks: short bars; flat 2×2, 3×3, 4×4 squares; solid 2×2×2 and 3×3×3 cubes; a 2×2×3 block. Oversize pieces are omitted where necessary.
+- New games fall at 2× speed. Legacy saves keep their original timing and piece catalogs.
 - Six well presets and configurable width, depth, and height.
 - Marathon and Practice; hold, next previews, landing ghost, and Practice undo.
 - Rotatable 3D well with four stable views and view-relative controls.

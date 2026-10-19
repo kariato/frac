@@ -1,6 +1,6 @@
 # FRAC-inspired spatial puzzle — game design document
 
-Version 0.2 • 18 October 2026 • Working project name: Frac
+Version 0.3 • 19 October 2026 • Working project name: Frac
 
 Browser-first implementation specification. Desktop, tablet, and phone are first-release targets.
 
@@ -69,14 +69,14 @@ Sprint victory is evaluated after scoring the clear and before spawning the next
 
 MVP supports rectangular wells. Custom limits are W = 3–10, D = 3–10, H = 8–24. Presets are curated configurations with independent score tables. These are proposed dimensions, not claims about Frac's original well.
 
-| Preset       | W × D × H  | Intended experience                             |
-| ------------ | ---------- | ----------------------------------------------- |
-| Starter      | 4 × 4 × 12 | Low speed, compact board, short straight pieces |
-| Standard     | 5 × 5 × 16 | Default spatial puzzle                          |
-| Narrow Shaft | 3 × 3 × 20 | Little horizontal recovery room                 |
-| Wide Basin   | 8 × 8 × 10 | Coverage planning and broad surfaces            |
-| Corridor     | 3 × 8 × 14 | Directional packing and long lanes              |
-| Tall Well    | 5 × 5 × 24 | More recovery space and longer runs             |
+| Preset       | W × D × H  | Intended experience                           |
+| ------------ | ---------- | --------------------------------------------- |
+| Starter      | 4 × 4 × 12 | Compact board; bars, squares and solid blocks |
+| Standard     | 5 × 5 × 16 | Default spatial puzzle                        |
+| Narrow Shaft | 3 × 3 × 20 | Little horizontal recovery room               |
+| Wide Basin   | 8 × 8 × 10 | Coverage planning and broad surfaces          |
+| Corridor     | 3 × 8 × 14 | Directional packing and long lanes            |
+| Tall Well    | 5 × 5 × 24 | More recovery space and longer runs           |
 
 ### Why dimensions matter
 
@@ -98,17 +98,17 @@ Pieces are face-connected sets of unit cubes. Author their canonical coordinates
 
 ### Piece families
 
-**Simple (default for every preset):** one cube, a two-cube straight bar, and a three-cube straight bar. No four-cube pieces, branches, zigzags, or compound 3D shapes appear in a new default run. A seeded bag deals one of each short straight piece before reshuffling.
+**Blocks (default for every preset):** single cubes, two/three-cube straight bars, flat 2×2, 3×3 and 4×4 squares, solid 2×2×2 and 3×3×3 cubes, and a solid 2×2×3 block. Shapes are filled cuboids or flat squares, not compound tetracubes.
 
-**Simple + corner (optional custom setting):** adds one three-cube L to the Simple family. The tutorial uses this small L to teach rotation.
+**Blocks + corner (optional custom setting):** adds a three-cube L. The tutorial retains the small Foundation pieces for teaching.
 
-**Legacy Standard:** the earlier eight-tetracube catalog is retained internally only so existing saves and replay exports remain readable. It is no longer offered when starting a new game. Loading a named setup from the old family switches its new-game selection to Simple. Existing runs and records retain their original family identifiers; do not silently reinterpret their cubes or scores.
+Only pieces with at least one orientation fitting the well and the four-row spawn buffer enter its seeded shuffle bag. The 4×4 square is omitted from a 3×3 shaft; it can spawn vertically in a 3×8 corridor. The setup screen explains when oversize pieces are omitted.
 
-This is a deliberate simplicity change, not a claim that the original Frac catalog has been reproduced exactly.
+Earlier Simple, Foundation and Standard catalogs remain unchanged internally for saved games and deterministic replays. Loading an old named setup selects the new Blocks family (or Blocks + corner). Old runs and records retain their original family and speed.
 
 ### Compatibility
 
-For every selected piece, require at least one legal orientation in an empty well under the chosen rotation rules. Reject incompatible configurations and identify the offending piece. The narrowest wells may disallow a straight tetracube under vertical-axis-only rules if no horizontal orientation fits.
+Exclude pieces without a legal empty-well spawn orientation. Keep all compatible pieces, including vertical flat-square orientations. Restricted-axis rotation remains deferred.
 
 Use full-axis rotations in the first release. Restricted-axis play is deferred until its piece family and spawn poses are separately designed.
 
@@ -134,9 +134,9 @@ For MVP, blocked rotations fail in place: no wall kicks, floor kicks, or automat
 
 ### Gravity and speed
 
-Simulation runs at 60 fixed ticks per second. Level L starts at 1. In Marathon, advance one level every eight cleared layers. Gravity interval in ticks is max(6, round(60 × 0.85^(L−1))). Thus level 1 falls approximately one cell per second and the fastest normal level falls one cell every 0.1 seconds.
+Simulation runs at 60 fixed ticks per second. Level L starts at 1. In Marathon, advance one level every eight cleared layers. Use a base threshold of max(6, round(60 × 0.85^(L−1))). New Blocks games accumulate two fall units per simulation tick: level 1 falls one cell every 0.5 seconds; the speed cap is one cell every 0.05 seconds. Retain fractional threshold remainders for exact 2× average speed at odd thresholds. The clock remains 60 ticks/second and lock delay stays 500 ms.
 
-Practice can disable gravity. Soft drop lowers the gravity interval to three ticks when that is faster than normal gravity. Hard drop moves to the lowest legal position and locks immediately.
+Practice can disable gravity. Soft drop uses a threshold of three fall units: two cells every three ticks in Blocks games. Reset the accumulator when toggling soft drop to avoid carrying a gravity backlog. Older saved families keep their original timing. Hard drop moves to the lowest legal position and locks immediately.
 
 ### Lock delay
 
@@ -206,7 +206,7 @@ Audio should confirm move, failed rotation, lock, layer clear, multi-layer clear
 
 ### Marathon — MVP
 
-Survive and maximize score with progressive gravity. Uses preset-specific local records. Default: Standard well, Simple pieces (one cube and two/three-cube bars), three previews, hold, full-axis rotation.
+Survive and maximize score with progressive gravity. Uses preset-specific local records. Default: Standard well, Blocks pieces (bars, flat squares and solid cuboids), three previews, hold, full-axis rotation.
 
 ### Practice — MVP
 

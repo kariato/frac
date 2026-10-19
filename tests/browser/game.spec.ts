@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { Engine, type GameConfig } from "../../src/engine";
 async function start(page: Page, practice = true) {
   await page.goto("/");
   if (practice) await page.locator('[data-mode="practice"]').click();
@@ -36,7 +37,7 @@ test("home presents six wells and a rendered preview without errors", async ({
   await expect(page.locator("[data-preset]")).toHaveCount(6);
   await expect(page.locator("#board canvas")).toBeVisible();
   await expect(page.locator('#family option[value="standard"]')).toHaveCount(0);
-  await expect(page.locator("#family")).toHaveValue("simple");
+  await expect(page.locator("#family")).toHaveValue("blocks");
   await page.locator('[data-preset="3"]').click();
   await expect(page.locator("#well-size")).toHaveText("8 × 8 × 10");
   await expect(page.locator("#capacity")).toHaveText("640 cubes");
@@ -201,4 +202,52 @@ test("minimum layouts keep all touch controls within viewport", async ({
       fullPage: true,
     });
   }
+});
+
+test("large solid previews fit their frames and new runs show doubled speed", async ({
+  page,
+}) => {
+  const config: GameConfig = {
+    width: 5,
+    depth: 5,
+    height: 16,
+    family: "blocks",
+    mode: "practice",
+    seed: 0,
+    gravity: false,
+    startLevel: 1,
+    previews: 3,
+    hold: true,
+  };
+  while (!new Engine(config).state.queue.slice(0, 3).includes(7)) config.seed++;
+  await page.goto("/");
+  await page.locator("#custom-toggle").click();
+  await page.locator("#seed").fill(String(config.seed));
+  await page.locator('[data-mode="practice"]').click();
+  await page.locator("#start-button").click();
+  await expect(page.locator("#stage-label")).toContainText("2× SPEED");
+  const cube = page.locator('svg[aria-label="3 × 3 × 3 cube"]:visible').first();
+  await expect(cube).toBeVisible();
+  const bounds = await cube.evaluate((el) => {
+    const outer = el.getBoundingClientRect(),
+      inner = el.querySelector("g")!.getBoundingClientRect();
+    return {
+      outer: {
+        x: outer.x,
+        y: outer.y,
+        right: outer.right,
+        bottom: outer.bottom,
+      },
+      inner: {
+        x: inner.x,
+        y: inner.y,
+        right: inner.right,
+        bottom: inner.bottom,
+      },
+    };
+  });
+  expect(bounds.inner.x).toBeGreaterThanOrEqual(bounds.outer.x);
+  expect(bounds.inner.y).toBeGreaterThanOrEqual(bounds.outer.y);
+  expect(bounds.inner.right).toBeLessThanOrEqual(bounds.outer.right);
+  expect(bounds.inner.bottom).toBeLessThanOrEqual(bounds.outer.bottom);
 });

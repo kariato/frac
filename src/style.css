@@ -2306,3 +2306,10 @@ dialog::backdrop {
     height: 22px;
   }
 }
+
+.piece-note {
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+  color: var(--muted);
+}

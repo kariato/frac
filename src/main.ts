@@ -4,6 +4,8 @@ import {
   Engine,
   PRESETS,
   CATALOGS,
+  fittingPieceIds,
+  fallSpeed,
   index,
   landing,
   rulesId,
@@ -90,10 +92,10 @@ $("#app").innerHTML = `
       <div class="eyebrow"><span class="status-dot"></span> A SPATIAL FALLING-BLOCK PUZZLE</div>
       <h1>Make space.<br><em>Find your flow.</em></h1><p class="intro">A familiar idea. One more dimension.<br>Arrange the pieces. Clear a layer. Keep going.</p>
       <div class="section-label">01 <span>CHOOSE YOUR WELL</span><button id="custom-toggle">Customize ↗</button></div>
-      <div id="presets" class="presets"></div>
+      <div id="presets" class="presets"></div><p id="piece-note" class="piece-note"></p>
       <div id="custom-panel" hidden>
         <div class="dimensions"><label>Width<input id="width" type="number" min="3" max="10" value="5"></label><span>×</span><label>Depth<input id="depth" type="number" min="3" max="10" value="5"></label><span>×</span><label>Height<input id="height" type="number" min="8" max="24" value="16"></label></div>
-        <label class="field">Pieces<select id="family"><option value="simple">Simple · cube and short bars</option><option value="foundation">Simple + corner · adds a small L</option></select></label>
+        <label class="field">Pieces<select id="family"><option value="blocks">Blocks · bars, squares &amp; solids</option><option value="blocks-corner">Blocks + corner · adds a small L</option></select></label>
         <div class="form-pair"><label class="field">Starting level<input id="start-level" type="number" min="1" max="20" value="1"></label><label class="field">Next pieces<select id="previews"><option>3</option><option>2</option><option>1</option><option>0</option></select></label></div>
         <label class="field">Seed <span class="muted">optional</span><input id="seed" type="text" maxlength="10" inputmode="numeric" placeholder="Random each run"></label><label class="check"><input id="hold-enabled" type="checkbox" checked> Allow hold</label>
         <div class="form-pair"><button id="save-preset" class="subtle">Save setup</button><button id="reset-preset" class="subtle">Reset preset</button></div><select id="saved-configs" aria-label="Saved setups"><option value="">Load a saved setup…</option></select>
@@ -202,7 +204,9 @@ function loadFields(c: GameConfig) {
   for (const key of ["width", "depth", "height"] as const)
     $<HTMLInputElement>(`#${key}`).value = String(c[key]);
   $<HTMLSelectElement>("#family").value =
-    c.family === "standard" ? "simple" : c.family;
+    c.family === "blocks-corner" || c.family === "foundation"
+      ? "blocks-corner"
+      : "blocks";
   $<HTMLInputElement>("#start-level").value = String(c.startLevel);
   $<HTMLSelectElement>("#previews").value = String(c.previews);
   $<HTMLInputElement>("#hold-enabled").checked = c.hold;
@@ -217,6 +221,10 @@ function refreshSetup() {
   try {
     const c = readConfig();
     preview = new Engine(c);
+    const omitted = CATALOGS[c.family].length - fittingPieceIds(c).length;
+    $("#piece-note").textContent = omitted
+      ? "2× falling speed · Oversize pieces are omitted from this well."
+      : "Bars, flat squares and solid blocks · 2× falling speed.";
     view?.update(preview.state, true);
     $("#well-size").textContent = `${c.width} × ${c.depth} × ${c.height}`;
     $("#footprint").textContent = `${c.width * c.depth} cells`;
@@ -304,7 +312,10 @@ function begin(instance?: Engine) {
   $("#pause-button").hidden = false;
   $("#stage-caption").hidden = true;
   $("#tutorial-panel").hidden = true;
-  $("#stage-label").textContent = "IN THE WELL";
+  $("#stage-label").textContent =
+    fallSpeed(engine.state.config) === 2
+      ? "IN THE WELL · 2× SPEED"
+      : "IN THE WELL";
   $("#well-size").textContent =
     `${engine.state.config.width} × ${engine.state.config.depth} × ${engine.state.config.height}`;
   $("#mobile-piece-strip").hidden = false;

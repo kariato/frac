@@ -2,7 +2,8 @@
 // Integer-only rules. No DOM, renderer, clocks, or browser storage dependencies.
 export type Vec = [number, number, number];
 export type Axis = "x" | "y" | "z";
-export type Family = "simple" | "foundation" | "standard";
+export type Family =
+  "blocks" | "blocks-corner" | "simple" | "foundation" | "standard";
 export type Mode = "marathon" | "practice";
 export interface GameConfig {
   width: number;
@@ -68,7 +69,7 @@ export const PRESETS = [
     width: 4,
     depth: 4,
     height: 12,
-    family: "simple",
+    family: "blocks",
     note: "Find your footing",
     tag: "LEARN",
   },
@@ -77,7 +78,7 @@ export const PRESETS = [
     width: 5,
     depth: 5,
     height: 16,
-    family: "simple",
+    family: "blocks",
     note: "The original challenge",
     tag: "CLASSIC",
   },
@@ -86,7 +87,7 @@ export const PRESETS = [
     width: 3,
     depth: 3,
     height: 20,
-    family: "simple",
+    family: "blocks",
     note: "Every cell counts",
     tag: "PRECISE",
   },
@@ -95,7 +96,7 @@ export const PRESETS = [
     width: 8,
     depth: 8,
     height: 10,
-    family: "simple",
+    family: "blocks",
     note: "Room to think bigger",
     tag: "EXPLORE",
   },
@@ -104,7 +105,7 @@ export const PRESETS = [
     width: 3,
     depth: 8,
     height: 14,
-    family: "simple",
+    family: "blocks",
     note: "A different perspective",
     tag: "UNUSUAL",
   },
@@ -113,7 +114,7 @@ export const PRESETS = [
     width: 5,
     depth: 5,
     height: 24,
-    family: "simple",
+    family: "blocks",
     note: "Play the long game",
     tag: "ENDURE",
   },
@@ -175,8 +176,58 @@ function tetracubes(): Vec[][] {
   }
   return shapes;
 }
+function cuboid(width: number, height: number, depth: number): Vec[] {
+  const cells: Vec[] = [];
+  for (let y = 0; y < height; y++)
+    for (let z = 0; z < depth; z++)
+      for (let x = 0; x < width; x++) cells.push([x, y, z]);
+  return cells;
+}
+const BLOCKS = [
+  cuboid(1, 1, 1),
+  cuboid(2, 1, 1),
+  cuboid(3, 1, 1),
+  cuboid(2, 1, 2),
+  cuboid(3, 1, 3),
+  cuboid(4, 1, 4),
+  cuboid(2, 2, 2),
+  cuboid(3, 3, 3),
+  cuboid(2, 2, 3),
+];
+const BLOCK_NAMES = [
+  "Single cube",
+  "Two-cube bar",
+  "Three-cube bar",
+  "2 × 2 square",
+  "3 × 3 square",
+  "4 × 4 square",
+  "2 × 2 × 2 cube",
+  "3 × 3 × 3 cube",
+  "2 × 2 × 3 block",
+  "Three-cube corner",
+];
+export function fallSpeed(config: GameConfig): 1 | 2 {
+  // Old saves and replays keep their original catalog and timing.
+  return config.family === "blocks" || config.family === "blocks-corner"
+    ? 2
+    : 1;
+}
+export function pieceName(family: Family, id: number): string {
+  return family === "blocks" || family === "blocks-corner"
+    ? BLOCK_NAMES[id]
+    : `${CATALOGS[family][id].length}-cube piece`;
+}
 export const CATALOGS: Record<Family, Vec[][]> = {
-  // Default play deliberately uses only short straight pieces.
+  blocks: BLOCKS,
+  "blocks-corner": [
+    ...BLOCKS,
+    [
+      [0, 0, 0],
+      [1, 0, 0],
+      [0, 0, 1],
+    ],
+  ],
+  // Retained unchanged for earlier saves and replays.
   simple: [
     [[0, 0, 0]],
     [
@@ -221,7 +272,9 @@ export function validateConfig(value: unknown): GameConfig {
     !Number.isInteger(c.height) ||
     c.height < 8 ||
     c.height > 24 ||
-    !["simple", "foundation", "standard"].includes(c.family) ||
+    !["blocks", "blocks-corner", "simple", "foundation", "standard"].includes(
+      c.family,
+    ) ||
     !["marathon", "practice"].includes(c.mode) ||
     !Number.isInteger(c.seed) ||
     c.seed < 0 ||
@@ -300,9 +353,28 @@ function rng(s: GameState): number {
   s.rng = x >>> 0;
   return s.rng / 4294967296;
 }
+const poseCache = new Map<string, Vec[][]>();
+function fittingPoses(config: GameConfig, id: number): Vec[][] {
+  const key = `${config.family}:${id}`;
+  if (!poseCache.has(key))
+    poseCache.set(key, orientations(CATALOGS[config.family][id]));
+  return poseCache
+    .get(key)!
+    .filter(
+      (cells) =>
+        Math.max(...cells.map((c) => c[0])) < config.width &&
+        Math.max(...cells.map((c) => c[2])) < config.depth &&
+        Math.max(...cells.map((c) => c[1])) < 4,
+    );
+}
+export function fittingPieceIds(config: GameConfig): number[] {
+  return CATALOGS[config.family]
+    .map((_, id) => id)
+    .filter((id) => fittingPoses(config, id).length > 0);
+}
 function next(s: GameState): number {
   if (!s.bag.length) {
-    s.bag = CATALOGS[s.config.family].map((_, i) => i);
+    s.bag = fittingPieceIds(s.config);
     for (let i = s.bag.length - 1; i > 0; i--) {
       const j = Math.floor(rng(s) * (i + 1));
       [s.bag[i], s.bag[j]] = [s.bag[j], s.bag[i]];
@@ -313,11 +385,9 @@ function next(s: GameState): number {
 function spawn(s: GameState, id: number) {
   const c = s.config;
   // Choose a low, fitting canonical pose deterministically, independent of the stack.
-  const candidates = orientations(CATALOGS[c.family][id]).filter(
-    (cs) =>
-      Math.max(...cs.map((v) => v[0])) < c.width &&
-      Math.max(...cs.map((v) => v[2])) < c.depth,
-  );
+  const candidates = fittingPoses(c, id);
+  if (!candidates.length)
+    throw new Error("This piece cannot fit in the selected well.");
   candidates.sort(
     (a, b) =>
       Math.max(...a.map((v) => v[1])) - Math.max(...b.map((v) => v[1])) ||
@@ -426,6 +496,8 @@ export class Engine {
     if (record)
       this.events.push({ tick: s.tick, command: structuredClone(cmd) });
     if (cmd.type === "softDrop") {
+      if (fallSpeed(s.config) === 2 && s.softDrop !== cmd.active)
+        s.fallTicks = 0;
       s.softDrop = cmd.active;
       return true;
     }
@@ -475,9 +547,11 @@ export class Engine {
     const gravity = s.config.mode === "marathon" || s.config.gravity;
     const interval = Math.max(6, Math.round(60 * Math.pow(0.85, s.level - 1)));
     if (gravity || s.softDrop) {
-      s.fallTicks++;
-      if (s.fallTicks >= (s.softDrop ? 3 : interval)) {
-        s.fallTicks = 0;
+      const speed = fallSpeed(s.config);
+      const threshold = s.softDrop ? 3 : interval;
+      s.fallTicks += speed;
+      if (s.fallTicks >= threshold) {
+        s.fallTicks = speed === 2 ? s.fallTicks - threshold : 0;
         const p = structuredClone(s.active);
         p.position[1]--;
         if (valid(s, p)) {
@@ -569,9 +643,10 @@ export class Engine {
         typeof s.softDrop !== "boolean"
       )
         throw new Error("Invalid save state.");
+      const allowed = new Set(fittingPieceIds(s.config));
       const ids = (a: number[]) =>
         Array.isArray(a) &&
-        a.every((id) => Number.isInteger(id) && id >= 0 && id < n);
+        a.every((id) => Number.isInteger(id) && allowed.has(id));
       if (
         !ids(s.queue) ||
         s.queue.length !== 4 ||

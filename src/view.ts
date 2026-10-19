@@ -2,6 +2,7 @@
 import * as THREE from "three";
 import {
   CATALOGS,
+  pieceName,
   landing,
   worldCells,
   type Family,
@@ -35,7 +36,9 @@ export function viewVector(
 export function previewSvg(family: Family, id: number | null): string {
   if (id === null)
     return '<svg viewBox="0 0 100 64" aria-hidden="true"><path d="M39 32h22" stroke="currentColor" opacity=".25"/></svg>';
-  const cells = CATALOGS[family][id];
+  const cells = [...CATALOGS[family][id]].sort(
+    (a, b) => a[0] + a[1] + a[2] - b[0] - b[1] - b[2],
+  );
   const points = cells.map(([x, y, z]) => [
     (x - z) * 12,
     -y * 14 + (x + z) * 6,
@@ -44,7 +47,8 @@ export function previewSvg(family: Family, id: number | null): string {
     maxX = Math.max(...points.map((p) => p[0]));
   const minY = Math.min(...points.map((p) => p[1])),
     maxY = Math.max(...points.map((p) => p[1]));
-  return `<svg viewBox="0 0 100 64" aria-label="${cells.length}-cube piece"><g transform="translate(${50 - (minX + maxX) / 2},${32 - (minY + maxY) / 2})" fill="${COLORS[id % 8]}" stroke="#18211f" stroke-width="1.2" stroke-linejoin="round">${points.map(([x, y]) => `<g transform="translate(${x},${y})"><path d="M0 -10 12 -4 0 2 -12 -4Z"/><path d="M-12 -4 0 2 0 16 -12 10Z" fill-opacity=".65"/><path d="M0 2 12 -4 12 10 0 16Z" fill-opacity=".85"/></g>`).join("")}</g></svg>`;
+  const scale = Math.min(1, 88 / (maxX - minX + 24), 54 / (maxY - minY + 26));
+  return `<svg viewBox="0 0 100 64" aria-label="${pieceName(family, id)}"><g transform="translate(50,32) scale(${scale}) translate(${-(minX + maxX) / 2},${-(minY + maxY) / 2 - 3})" fill="${COLORS[id % 8]}" stroke="#18211f" stroke-width="1.2" stroke-linejoin="round">${points.map(([x, y]) => `<g transform="translate(${x},${y})"><path d="M0 -10 12 -4 0 2 -12 -4Z"/><path d="M-12 -4 0 2 0 16 -12 10Z" fill-opacity=".65"/><path d="M0 2 12 -4 12 10 0 16Z" fill-opacity=".85"/></g>`).join("")}</g></svg>`;
 }
 export class BoardView {
   renderer: THREE.WebGLRenderer;
