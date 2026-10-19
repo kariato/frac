@@ -38,6 +38,9 @@ test("home presents six wells and a rendered preview without errors", async ({
   await expect(page.locator("#board canvas")).toBeVisible();
   await expect(page.locator('#family option[value="standard"]')).toHaveCount(0);
   await expect(page.locator("#family")).toHaveValue("blocks");
+  await expect(page.locator("#piece-note")).toContainText(
+    "Mostly small pieces",
+  );
   await page.locator('[data-preset="3"]').click();
   await expect(page.locator("#well-size")).toHaveText("8 × 8 × 10");
   await expect(page.locator("#capacity")).toHaveText("640 cubes");
@@ -210,6 +213,7 @@ test("large solid previews fit their frames and new runs show doubled speed", as
     depth: 5,
     height: 16,
     family: "blocks",
+    distribution: "size-weighted",
     mode: "practice",
     seed: 0,
     gravity: false,

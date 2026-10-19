@@ -16,6 +16,7 @@ export interface GameConfig {
   startLevel: number;
   previews: number;
   hold: boolean;
+  distribution?: "size-weighted";
 }
 export interface Piece {
   id: number;
@@ -70,6 +71,7 @@ export const PRESETS = [
     depth: 4,
     height: 12,
     family: "blocks",
+    distribution: "size-weighted",
     note: "Find your footing",
     tag: "LEARN",
   },
@@ -79,6 +81,7 @@ export const PRESETS = [
     depth: 5,
     height: 16,
     family: "blocks",
+    distribution: "size-weighted",
     note: "The original challenge",
     tag: "CLASSIC",
   },
@@ -88,6 +91,7 @@ export const PRESETS = [
     depth: 3,
     height: 20,
     family: "blocks",
+    distribution: "size-weighted",
     note: "Every cell counts",
     tag: "PRECISE",
   },
@@ -97,6 +101,7 @@ export const PRESETS = [
     depth: 8,
     height: 10,
     family: "blocks",
+    distribution: "size-weighted",
     note: "Room to think bigger",
     tag: "EXPLORE",
   },
@@ -106,6 +111,7 @@ export const PRESETS = [
     depth: 8,
     height: 14,
     family: "blocks",
+    distribution: "size-weighted",
     note: "A different perspective",
     tag: "UNUSUAL",
   },
@@ -115,6 +121,7 @@ export const PRESETS = [
     depth: 5,
     height: 24,
     family: "blocks",
+    distribution: "size-weighted",
     note: "Play the long game",
     tag: "ENDURE",
   },
@@ -285,6 +292,9 @@ export function validateConfig(value: unknown): GameConfig {
     !Number.isInteger(c.previews) ||
     c.previews < 0 ||
     c.previews > 3 ||
+    (c.distribution !== undefined &&
+      (c.distribution !== "size-weighted" ||
+        !["blocks", "blocks-corner"].includes(c.family))) ||
     typeof c.hold !== "boolean" ||
     typeof c.gravity !== "boolean"
   )
@@ -300,6 +310,7 @@ export function validateConfig(value: unknown): GameConfig {
     startLevel: c.startLevel,
     previews: c.previews,
     hold: c.hold,
+    ...(c.distribution ? { distribution: c.distribution } : {}),
   };
 }
 export function index(c: GameConfig, x: number, y: number, z: number) {
@@ -372,9 +383,30 @@ export function fittingPieceIds(config: GameConfig): number[] {
     .map((_, id) => id)
     .filter((id) => fittingPoses(config, id).length > 0);
 }
+// A weighted shuffle bag: larger occupied volumes receive fewer copies.
+const SIZE_COPIES: Record<number, number> = {
+  1: 120,
+  2: 72,
+  3: 48,
+  4: 32,
+  8: 12,
+  9: 8,
+  12: 4,
+  16: 2,
+  27: 1,
+};
+function bagContents(config: GameConfig): number[] {
+  return fittingPieceIds(config).flatMap((id) =>
+    Array<number>(
+      config.distribution === "size-weighted"
+        ? (SIZE_COPIES[CATALOGS[config.family][id].length] ?? 1)
+        : 1,
+    ).fill(id),
+  );
+}
 function next(s: GameState): number {
   if (!s.bag.length) {
-    s.bag = fittingPieceIds(s.config);
+    s.bag = bagContents(s.config);
     for (let i = s.bag.length - 1; i > 0; i--) {
       const j = Math.floor(rng(s) * (i + 1));
       [s.bag[i], s.bag[j]] = [s.bag[j], s.bag[i]];
@@ -443,7 +475,7 @@ export function newState(config: GameConfig): GameState {
   return s;
 }
 export function rulesId(c: GameConfig): string {
-  return `v${RULES_VERSION}:${c.mode}:${c.width}x${c.depth}x${c.height}:${c.family}:L${c.startLevel}:g${+c.gravity}:p${c.previews}:h${+c.hold}`;
+  return `v${RULES_VERSION}:${c.mode}:${c.width}x${c.depth}x${c.height}:${c.family}:L${c.startLevel}:g${+c.gravity}:p${c.previews}:h${+c.hold}${c.distribution ? ":size-weighted-v1" : ""}`;
 }
 export function checksum(s: GameState): string {
   let h = 2166136261;
@@ -651,7 +683,7 @@ export class Engine {
         !ids(s.queue) ||
         s.queue.length !== 4 ||
         !ids(s.bag) ||
-        s.bag.length > n ||
+        s.bag.length > bagContents(s.config).length ||
         !(s.held === null || ids([s.held]))
       )
         throw new Error("Invalid piece queue.");

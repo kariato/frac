@@ -35,6 +35,80 @@ const config: GameConfig = {
 function single(e: Engine, x = 0, y = 0, z = 0) {
   e.state.active = { id: 0, cells: [[0, 0, 0]], position: [x, y, z] };
 }
+describe("size-weighted distribution", () => {
+  const weighted: GameConfig = {
+    ...config,
+    family: "blocks",
+    distribution: "size-weighted",
+  };
+  const inventory = (e: Engine) => [
+    e.state.active.id,
+    ...e.state.queue,
+    ...e.state.bag,
+  ];
+  it("deals mostly small blocks with strictly declining frequency as volume grows", () => {
+    const pieces = inventory(new Engine(weighted));
+    const counts = CATALOGS.blocks.map(
+      (_, id) => pieces.filter((p) => p === id).length,
+    );
+    expect(counts).toEqual([120, 72, 48, 32, 8, 2, 12, 1, 4]);
+    expect(pieces).toHaveLength(299);
+    expect(pieces.filter((id) => CATALOGS.blocks[id].length <= 4)).toHaveLength(
+      272,
+    );
+    expect(
+      pieces.filter((id) => CATALOGS.blocks[id].length >= 16),
+    ).toHaveLength(3);
+    const order = CATALOGS.blocks
+      .map((cells, id) => ({ volume: cells.length, count: counts[id] }))
+      .sort((a, b) => a.volume - b.volume);
+    for (let i = 1; i < order.length; i++)
+      expect(order[i].count).toBeLessThan(order[i - 1].count);
+    expect(PRESETS.every((p) => p.distribution === "size-weighted")).toBe(true);
+  });
+  it("keeps the same weights for fitting pieces and for optional small corners", () => {
+    const narrow = inventory(new Engine({ ...weighted, width: 3, depth: 3 }));
+    expect(narrow).toHaveLength(297);
+    expect(narrow).not.toContain(5);
+    expect(narrow.filter((id) => id === 7)).toHaveLength(1);
+    const corners = inventory(
+      new Engine({ ...weighted, family: "blocks-corner" }),
+    );
+    expect(corners).toHaveLength(347);
+    expect(corners.filter((id) => id === 9)).toHaveLength(48);
+  });
+  it("preserves seeded weighted queues, saves, undo, and replay", () => {
+    const e = new Engine({ ...weighted, mode: "practice", gravity: false });
+    expect(Engine.restore(e.snapshot()).state).toEqual(e.state);
+    const before = e.snapshot();
+    e.command({ type: "hold" });
+    e.command({ type: "hardDrop" });
+    expect(e.undo()).toBe(true);
+    expect(e.state).toEqual(before.state);
+    for (let i = 0; i < 240; i++) {
+      if (i % 80 === 0) e.command({ type: "hardDrop" });
+      e.step();
+    }
+    expect(playReplay(e.replay())).toEqual(e.state);
+    expect(Engine.restore(e.snapshot()).state).toEqual(e.state);
+    expect(inventory(new Engine(weighted))).toEqual(
+      inventory(new Engine(weighted)),
+    );
+  });
+  it("keeps old uniform rules readable and weighted records separate", () => {
+    const legacy = { ...config, family: "blocks" as const };
+    const e = new Engine(legacy);
+    expect(inventory(e)).toHaveLength(9);
+    expect(validateConfig(legacy)).not.toHaveProperty("distribution");
+    expect(rulesId(weighted)).not.toBe(rulesId(legacy));
+    expect(() =>
+      validateConfig({ ...weighted, distribution: "unknown" }),
+    ).toThrow();
+    const broken = new Engine(weighted).snapshot();
+    broken.state.bag = Array(300).fill(0);
+    expect(() => Engine.restore(broken)).toThrow("Invalid piece queue");
+  });
+});
 describe("piece catalogs and transforms", () => {
   it("contains the requested squares, cubes and cuboid without compound shapes", () => {
     expect(CATALOGS.blocks.map((cells) => cells.length)).toEqual([
@@ -71,7 +145,7 @@ describe("piece catalogs and transforms", () => {
       e.command({ type: "hardDrop" });
     }
   });
-  it("round-trips large pieces through rotation, saves, replay, and filtered bags", () => {
+  it("round-trips legacy uniform large pieces through rotation, saves, replay, and filtered bags", () => {
     const e = new Engine({
       ...config,
       family: "blocks",

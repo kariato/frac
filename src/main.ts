@@ -181,6 +181,7 @@ function readConfig(): GameConfig {
     height: custom ? +$<HTMLInputElement>("#height").value : p.height,
     family: custom ? $<HTMLSelectElement>("#family").value : p.family,
     mode,
+    distribution: "size-weighted",
     seed: seedInput
       ? Number(seedInput)
       : crypto.getRandomValues(new Uint32Array(1))[0],
@@ -223,8 +224,8 @@ function refreshSetup() {
     preview = new Engine(c);
     const omitted = CATALOGS[c.family].length - fittingPieceIds(c).length;
     $("#piece-note").textContent = omitted
-      ? "2× falling speed · Oversize pieces are omitted from this well."
-      : "Bars, flat squares and solid blocks · 2× falling speed.";
+      ? "Mostly small pieces · 2× speed · Oversize blocks omitted."
+      : "Mostly small pieces · Large blocks are rare · 2× speed.";
     view?.update(preview.state, true);
     $("#well-size").textContent = `${c.width} × ${c.depth} × ${c.height}`;
     $("#footprint").textContent = `${c.width * c.depth} cells`;

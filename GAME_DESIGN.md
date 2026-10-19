@@ -1,6 +1,6 @@
 # FRAC-inspired spatial puzzle — game design document
 
-Version 0.3 • 19 October 2026 • Working project name: Frac
+Version 0.4 • 19 October 2026 • Working project name: Frac
 
 Browser-first implementation specification. Desktop, tablet, and phone are first-release targets.
 
@@ -114,7 +114,23 @@ Use full-axis rotations in the first release. Restricted-axis play is deferred u
 
 ### Randomizer
 
-Use a seeded shuffle bag containing one of each piece in the chosen family. Shuffle with a versioned pseudorandom generator, exhaust the bag, then create the next. Maintain the upcoming queue independently of display settings.
+New games use a seeded, size-weighted shuffle bag. Common small pieces have many copies; larger occupied volumes receive progressively fewer copies. Shuffle the complete bag, exhaust it, then refill. Filter pieces that cannot fit before constructing the bag; remaining probabilities renormalize automatically. The upcoming queue is independent of preview visibility.
+
+| Piece          | Volume | Copies per full default bag | Approximate chance |
+| -------------- | -----: | --------------------------: | -----------------: |
+| Single cube    |      1 |                         120 |              40.1% |
+| Two-cube bar   |      2 |                          72 |              24.1% |
+| Three-cube bar |      3 |                          48 |              16.1% |
+| 2×2 square     |      4 |                          32 |              10.7% |
+| 2×2×2 cube     |      8 |                          12 |               4.0% |
+| 3×3 square     |      9 |                           8 |               2.7% |
+| 2×2×3 block    |     12 |                           4 |               1.3% |
+| 4×4 square     |     16 |                           2 |              0.67% |
+| 3×3×3 cube     |     27 |                           1 |              0.33% |
+
+The full bag has 299 pieces: 272 (about 91%) contain at most four cubes, and only three (about 1%) have volume 16 or greater. The optional three-cube corner gets 48 copies, matching the straight piece of the same volume. These are long-run proportions, not fixed intervals between rare pieces.
+
+Identify the new distribution with the optional configuration field `distribution: "size-weighted"` and its own record suffix. Configurations without it retain the earlier uniform bag, so old saves and replays remain deterministic. New games from presets or saved setups use the new distribution. Falling speed remains 2×.
 
 Spawn each piece in a predetermined compatible orientation chosen from the ruleset, centered horizontally with a documented integer tie-break toward lower x and z. Its lowest cell begins at y = H. Do not adapt spawn orientation to the current stack.
 
