@@ -5,7 +5,7 @@
 ## Automated checks completed
 
 - **49 engine tests passed** using Node 24.19.0 and Vitest 5.0.5.
-- **30 browser tests passed** using Playwright Chromium, desktop and iPhone-sized touch emulation.
+- **36 browser tests passed** using Playwright Chromium, desktop and iPhone-sized touch emulation.
 - TypeScript strict checking and Vite production build passed.
 - Dependency audit reported **zero known vulnerabilities** at verification time.
 - Production HTML/JS/CSS loaded from a nested path inside an iframe and completed a placement without page errors.
@@ -15,7 +15,7 @@ Engine coverage includes default bars, flat squares, solid cubes and cuboids, ex
 
 Browser coverage includes well selection, setup validation, named configurations, keyboard/touch placement, save/resume, Practice undo, camera snapping/input suppression, tutorial layer completion, focus pause, denied storage, remapping/menu keyboard behavior, graphics interruption, backup export/import, malformed backup rejection, simultaneous movement/soft-drop cancellation, production iframe/subpath loading, and full-size 3×3×3 preview containment on desktop and touch.
 
-Software WebGL browser checks run serially to avoid competing graphics contexts affecting animation timing. Browser tests build on explicit settled-view state rather than fixed sleeps for camera transitions.
+Software WebGL browser checks run serially to avoid competing graphics contexts affecting animation timing. Each viewport has its own test case and timeout, rather than combining four software-rendered screenshots into one hosted-runner time budget. Browser tests build on explicit settled-view state rather than fixed sleeps for camera transitions.
 
 ## Visual inspection
 

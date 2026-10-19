@@ -165,15 +165,13 @@ test("focus loss pauses and explicit resume clears held input", async ({
   await page.locator("#resume").click();
   await expect(page.locator("#modal")).not.toBeVisible();
 });
-test("minimum layouts keep all touch controls within viewport", async ({
-  page,
-}) => {
-  for (const size of [
-    { width: 360, height: 640 },
-    { width: 640, height: 360 },
-    { width: 820, height: 1180 },
-    { width: 1180, height: 820 },
-  ]) {
+for (const size of [
+  { width: 360, height: 640 },
+  { width: 640, height: 360 },
+  { width: 820, height: 1180 },
+  { width: 1180, height: 820 },
+]) {
+  test(`touch controls fit ${size.width}×${size.height}`, async ({ page }) => {
     await page.setViewportSize(size);
     await start(page);
     await page.locator("#settings-button").click();
@@ -201,8 +199,8 @@ test("minimum layouts keep all touch controls within viewport", async ({
       path: `test-results/layout-${test.info().project.name}-${size.width}.png`,
       fullPage: true,
     });
-  }
-});
+  });
+}
 
 test("large solid previews fit their frames and new runs show doubled speed", async ({
   page,
