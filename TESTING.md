@@ -4,14 +4,14 @@
 
 ## Automated checks completed
 
-- **41 engine tests passed** using Node 24.19.0 and Vitest 5.0.5.
+- **43 engine tests passed** using Node 24.19.0 and Vitest 5.0.5.
 - **28 browser tests passed** using Playwright Chromium, desktop and iPhone-sized touch emulation.
 - TypeScript strict checking and Vite production build passed.
 - Dependency audit reported **zero known vulnerabilities** at verification time.
 - Production HTML/JS/CSS loaded from a nested path inside an iframe and completed a placement without page errors.
 - Layouts checked at 360×640, 640×360, 820×1180, and 1180×820. Gameplay buttons stayed within the viewport and measured at least 48 CSS pixels in the layout assertions.
 
-Engine coverage includes eight tetracubes, Foundation shapes, connectivity, inverse/four-turn rotations, orientations, all presets, custom minimum/maximum dimensions, invalid settings, collision boundaries, atomic failure, hard-drop landing, simultaneous clears, whole-layer compaction, hidden rows, pre-top-out clears, scoring, gravity, lock delay/reset limits, hold, disabled hold, deterministic bags, replay, snapshots, corrupted data, same-tick undo, and view mapping.
+Engine coverage includes short straight default pieces across all six wells, simple-piece bags/saves/replays, legacy eight-tetracube save compatibility, optional Foundation shapes, connectivity, inverse/four-turn rotations, orientations, all presets, custom minimum/maximum dimensions, invalid settings, collision boundaries, atomic failure, hard-drop landing, simultaneous clears, whole-layer compaction, hidden rows, pre-top-out clears, scoring, gravity, lock delay/reset limits, hold, disabled hold, deterministic bags, replay, snapshots, corrupted data, same-tick undo, and view mapping.
 
 Browser coverage includes well selection, setup validation, named configurations, keyboard/touch placement, save/resume, Practice undo, camera snapping/input suppression, tutorial layer completion, focus pause, denied storage, remapping/menu keyboard behavior, graphics interruption, backup export/import, malformed backup rejection, simultaneous movement/soft-drop cancellation, and production iframe/subpath loading.
 

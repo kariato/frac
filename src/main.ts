@@ -93,7 +93,7 @@ $("#app").innerHTML = `
       <div id="presets" class="presets"></div>
       <div id="custom-panel" hidden>
         <div class="dimensions"><label>Width<input id="width" type="number" min="3" max="10" value="5"></label><span>×</span><label>Depth<input id="depth" type="number" min="3" max="10" value="5"></label><span>×</span><label>Height<input id="height" type="number" min="8" max="24" value="16"></label></div>
-        <label class="field">Pieces<select id="family"><option value="standard">Standard · four cubes</option><option value="foundation">Foundation · one to three cubes</option></select></label>
+        <label class="field">Pieces<select id="family"><option value="simple">Simple · cube and short bars</option><option value="foundation">Simple + corner · adds a small L</option></select></label>
         <div class="form-pair"><label class="field">Starting level<input id="start-level" type="number" min="1" max="20" value="1"></label><label class="field">Next pieces<select id="previews"><option>3</option><option>2</option><option>1</option><option>0</option></select></label></div>
         <label class="field">Seed <span class="muted">optional</span><input id="seed" type="text" maxlength="10" inputmode="numeric" placeholder="Random each run"></label><label class="check"><input id="hold-enabled" type="checkbox" checked> Allow hold</label>
         <div class="form-pair"><button id="save-preset" class="subtle">Save setup</button><button id="reset-preset" class="subtle">Reset preset</button></div><select id="saved-configs" aria-label="Saved setups"><option value="">Load a saved setup…</option></select>
@@ -201,7 +201,8 @@ function configLabel(c: GameConfig) {
 function loadFields(c: GameConfig) {
   for (const key of ["width", "depth", "height"] as const)
     $<HTMLInputElement>(`#${key}`).value = String(c[key]);
-  $<HTMLSelectElement>("#family").value = c.family;
+  $<HTMLSelectElement>("#family").value =
+    c.family === "standard" ? "simple" : c.family;
   $<HTMLInputElement>("#start-level").value = String(c.startLevel);
   $<HTMLSelectElement>("#previews").value = String(c.previews);
   $<HTMLInputElement>("#hold-enabled").checked = c.hold;

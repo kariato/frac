@@ -2,7 +2,7 @@
 // Integer-only rules. No DOM, renderer, clocks, or browser storage dependencies.
 export type Vec = [number, number, number];
 export type Axis = "x" | "y" | "z";
-export type Family = "foundation" | "standard";
+export type Family = "simple" | "foundation" | "standard";
 export type Mode = "marathon" | "practice";
 export interface GameConfig {
   width: number;
@@ -68,7 +68,7 @@ export const PRESETS = [
     width: 4,
     depth: 4,
     height: 12,
-    family: "foundation",
+    family: "simple",
     note: "Find your footing",
     tag: "LEARN",
   },
@@ -77,7 +77,7 @@ export const PRESETS = [
     width: 5,
     depth: 5,
     height: 16,
-    family: "standard",
+    family: "simple",
     note: "The original challenge",
     tag: "CLASSIC",
   },
@@ -86,7 +86,7 @@ export const PRESETS = [
     width: 3,
     depth: 3,
     height: 20,
-    family: "standard",
+    family: "simple",
     note: "Every cell counts",
     tag: "PRECISE",
   },
@@ -95,7 +95,7 @@ export const PRESETS = [
     width: 8,
     depth: 8,
     height: 10,
-    family: "standard",
+    family: "simple",
     note: "Room to think bigger",
     tag: "EXPLORE",
   },
@@ -104,7 +104,7 @@ export const PRESETS = [
     width: 3,
     depth: 8,
     height: 14,
-    family: "standard",
+    family: "simple",
     note: "A different perspective",
     tag: "UNUSUAL",
   },
@@ -113,7 +113,7 @@ export const PRESETS = [
     width: 5,
     depth: 5,
     height: 24,
-    family: "standard",
+    family: "simple",
     note: "Play the long game",
     tag: "ENDURE",
   },
@@ -176,6 +176,19 @@ function tetracubes(): Vec[][] {
   return shapes;
 }
 export const CATALOGS: Record<Family, Vec[][]> = {
+  // Default play deliberately uses only short straight pieces.
+  simple: [
+    [[0, 0, 0]],
+    [
+      [0, 0, 0],
+      [1, 0, 0],
+    ],
+    [
+      [0, 0, 0],
+      [1, 0, 0],
+      [2, 0, 0],
+    ],
+  ],
   foundation: [
     [[0, 0, 0]],
     [
@@ -208,7 +221,7 @@ export function validateConfig(value: unknown): GameConfig {
     !Number.isInteger(c.height) ||
     c.height < 8 ||
     c.height > 24 ||
-    !["foundation", "standard"].includes(c.family) ||
+    !["simple", "foundation", "standard"].includes(c.family) ||
     !["marathon", "practice"].includes(c.mode) ||
     !Number.isInteger(c.seed) ||
     c.seed < 0 ||

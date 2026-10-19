@@ -8,6 +8,7 @@ Play: **https://kariato.github.io/frac/** · [Design](GAME_DESIGN.md) · [Implem
 
 Pack falling voxel pieces into the well. Fill an entire horizontal layer to clear it. Keep the stack below the rim.
 
+- **Simple pieces by default:** single cubes, two-cube bars, and three-cube bars. A small three-cube corner is optional in custom setup.
 - **Marathon:** increasing gravity and local scores per ruleset.
 - **Practice:** optional gravity, one-placement undo, and layer inspection.
 - Choose Starter, Standard, Narrow Shaft, Wide Basin, Corridor, Tall Well, or customize width/depth (3–10) and height (8–24).

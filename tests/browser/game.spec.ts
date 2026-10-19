@@ -35,6 +35,8 @@ test("home presents six wells and a rendered preview without errors", async ({
   ).toBeVisible();
   await expect(page.locator("[data-preset]")).toHaveCount(6);
   await expect(page.locator("#board canvas")).toBeVisible();
+  await expect(page.locator('#family option[value="standard"]')).toHaveCount(0);
+  await expect(page.locator("#family")).toHaveValue("simple");
   await page.locator('[data-preset="3"]').click();
   await expect(page.locator("#well-size")).toHaveText("8 × 8 × 10");
   await expect(page.locator("#capacity")).toHaveText("640 cubes");

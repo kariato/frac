@@ -69,14 +69,14 @@ Sprint victory is evaluated after scoring the clear and before spawning the next
 
 MVP supports rectangular wells. Custom limits are W = 3–10, D = 3–10, H = 8–24. Presets are curated configurations with independent score tables. These are proposed dimensions, not claims about Frac's original well.
 
-| Preset       | W × D × H  | Intended experience                    |
-| ------------ | ---------- | -------------------------------------- |
-| Starter      | 4 × 4 × 12 | Low speed, compact board, small pieces |
-| Standard     | 5 × 5 × 16 | Default spatial puzzle                 |
-| Narrow Shaft | 3 × 3 × 20 | Little horizontal recovery room        |
-| Wide Basin   | 8 × 8 × 10 | Coverage planning and broad surfaces   |
-| Corridor     | 3 × 8 × 14 | Directional packing and long lanes     |
-| Tall Well    | 5 × 5 × 24 | More recovery space and longer runs    |
+| Preset       | W × D × H  | Intended experience                             |
+| ------------ | ---------- | ----------------------------------------------- |
+| Starter      | 4 × 4 × 12 | Low speed, compact board, short straight pieces |
+| Standard     | 5 × 5 × 16 | Default spatial puzzle                          |
+| Narrow Shaft | 3 × 3 × 20 | Little horizontal recovery room                 |
+| Wide Basin   | 8 × 8 × 10 | Coverage planning and broad surfaces            |
+| Corridor     | 3 × 8 × 14 | Directional packing and long lanes              |
+| Tall Well    | 5 × 5 × 24 | More recovery space and longer runs             |
 
 ### Why dimensions matter
 
@@ -98,11 +98,13 @@ Pieces are face-connected sets of unit cubes. Author their canonical coordinates
 
 ### Piece families
 
-**Foundation:** the four unique shapes of sizes one to three under spatial rotation: single cube, domino, straight tricube, and bent tricube. Use this family for the tutorial and Starter preset.
+**Simple (default for every preset):** one cube, a two-cube straight bar, and a three-cube straight bar. No four-cube pieces, branches, zigzags, or compound 3D shapes appear in a new default run. A seeded bag deals one of each short straight piece before reshuffling.
 
-**Standard:** all eight free tetracubes, four cubes per piece, with mirror-related shapes treated as separate when rotation alone cannot match them. The authoring tool must enumerate orientations and verify the final catalog rather than relying on shape names. Standard is the default family after the tutorial.
+**Simple + corner (optional custom setting):** adds one three-cube L to the Simple family. The tutorial uses this small L to teach rotation.
 
-**Extended, post-MVP:** a curated set of five-cube pieces. Introduce this only after the base interface is proven readable.
+**Legacy Standard:** the earlier eight-tetracube catalog is retained internally only so existing saves and replay exports remain readable. It is no longer offered when starting a new game. Loading a named setup from the old family switches its new-game selection to Simple. Existing runs and records retain their original family identifiers; do not silently reinterpret their cubes or scores.
+
+This is a deliberate simplicity change, not a claim that the original Frac catalog has been reproduced exactly.
 
 ### Compatibility
 
@@ -204,7 +206,7 @@ Audio should confirm move, failed rotation, lock, layer clear, multi-layer clear
 
 ### Marathon — MVP
 
-Survive and maximize score with progressive gravity. Uses preset-specific local records. Default: Standard well, Standard pieces, three previews, hold, full-axis rotation.
+Survive and maximize score with progressive gravity. Uses preset-specific local records. Default: Standard well, Simple pieces (one cube and two/three-cube bars), three previews, hold, full-axis rotation.
 
 ### Practice — MVP
 

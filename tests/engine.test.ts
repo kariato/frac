@@ -34,6 +34,25 @@ function single(e: Engine, x = 0, y = 0, z = 0) {
   e.state.active = { id: 0, cells: [[0, 0, 0]], position: [x, y, z] };
 }
 describe("piece catalogs and transforms", () => {
+  it("defaults every well to only single cubes and short straight bars", () => {
+    expect(CATALOGS.simple.map((cells) => cells.length)).toEqual([1, 2, 3]);
+    for (const cells of CATALOGS.simple) {
+      expect(cells.every(([x, y, z], i) => x === i && y === 0 && z === 0)).toBe(
+        true,
+      );
+    }
+    expect(PRESETS.every((preset) => preset.family === "simple")).toBe(true);
+  });
+  it("deals the complete simple catalog once per bag and restores simple saves", () => {
+    const e = new Engine({ ...config, family: "simple" });
+    expect(
+      new Set([e.state.active.id, ...e.state.queue.slice(0, 2)]).size,
+    ).toBe(3);
+    e.command({ type: "hardDrop" });
+    expect(Engine.restore(e.snapshot()).state).toEqual(e.state);
+    expect(playReplay(e.replay())).toEqual(e.state);
+    expect(rulesId(e.state.config)).not.toBe(rulesId(config));
+  });
   it("enumerates exactly eight distinct tetracubes and four foundation pieces", () => {
     expect(CATALOGS.standard).toHaveLength(8);
     expect(CATALOGS.foundation).toHaveLength(4);
